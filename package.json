@@ -1,0 +1,11 @@
+{
+  "name": "doom-plug",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Doom-plug: a minimal Nuvio scraper bundle with 4KHDHub, HDHub4u, 4khdhub-tv, and HindMoviez.",
+  "license": "GPL-3.0",
+  "dependencies": {
+    "cheerio-without-node-native": "^0.20.2",
+    "crypto-js": "^4.2.0"
+  }
+}

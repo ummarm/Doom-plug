@@ -1,0 +1,58 @@
+{
+  "name": "Doom-plug",
+  "version": "1.0.0",
+  "scrapers": [
+    {
+      "id": "4khdhub",
+      "name": "4KHDHub",
+      "description": "4KHDHub direct links",
+      "version": "1.0.0",
+      "author": "ummarm",
+      "supportedTypes": ["movie", "tv"],
+      "filename": "providers/4khdhub.js",
+      "enabled": true,
+      "formats": ["mp4", "m3u8"],
+      "logo": "https://i.postimg.cc/DZpW6Xfb/4khdhub.png",
+      "contentLanguage": ["en"]
+    },
+    {
+      "id": "4khdhubtv",
+      "name": "4khdhub-tv",
+      "description": "4KHDHub TV direct links",
+      "version": "1.0.0",
+      "author": "ummarm",
+      "supportedTypes": ["movie", "tv"],
+      "filename": "providers/4khdhub_tv.js",
+      "enabled": true,
+      "formats": ["mp4", "m3u8"],
+      "logo": "https://i.postimg.cc/DZpW6Xfb/4khdhub.png",
+      "contentLanguage": ["en"]
+    },
+    {
+      "id": "hdhub4u",
+      "name": "HDHub4u",
+      "description": "Direct links from HDHub4u with high-speed download support",
+      "version": "1.0.0",
+      "author": "ummarm",
+      "supportedTypes": ["movie", "tv"],
+      "filename": "providers/hdhub4u.js",
+      "enabled": true,
+      "formats": ["mp4", "m3u8"],
+      "logo": "https://i.postimg.cc/mryRTf0R/hdhub4u.png",
+      "contentLanguage": ["en"]
+    },
+    {
+      "id": "hindmoviez",
+      "name": "HindMoviez",
+      "description": "HindMoviez - Hindi and English Movies and Series",
+      "version": "1.0.0",
+      "author": "ummarm",
+      "supportedTypes": ["movie", "tv"],
+      "filename": "providers/hindmoviez.js",
+      "enabled": true,
+      "formats": ["mp4", "mkv", "m3u8"],
+      "logo": "https://i.postimg.cc/5t55Csm4/hindmoviez.png",
+      "contentLanguage": ["en", "hi"]
+    }
+  ]
+}
