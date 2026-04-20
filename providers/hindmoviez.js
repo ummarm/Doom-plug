@@ -537,10 +537,13 @@ function getStreams(tmdbId, type, season, episode) {
                 if (info.size)               titleLines.push('💾 ' + info.size);
                 titleLines.push('by Sanchit · @S4NCHITT · Murph\'s Streams');
 
+                // Route through Cloudflare Worker for seek + edge cache + TV compatibility
+                var proxiedUrl = url;
+
                 streams.push({
                   name  : streamName,
                   title : titleLines.join('\n'),
-                  url   : url,
+                  url   : proxiedUrl,
                   quality: info.quality || undefined,
                   behaviorHints: {
                     notWebReady: false,
