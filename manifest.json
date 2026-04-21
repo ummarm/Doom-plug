@@ -1,6 +1,6 @@
 {
   "name": "Doom-plug",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "scrapers": [
     {
       "id": "4khdhub",
@@ -86,6 +86,52 @@
       "contentLanguage": [
         "en",
         "hi"
+      ]
+    },
+    {
+      "id": "movieblast",
+      "name": "MovieBlast",
+      "description": "MovieBlast - Hindi, Tamil, Telugu and English Movies/Series with multi-quality streams",
+      "version": "1.0.0",
+      "author": "ummarm",
+      "supportedTypes": [
+        "movie",
+        "tv"
+      ],
+      "filename": "providers/movieblast.js",
+      "enabled": true,
+      "formats": [
+        "mp4",
+        "mkv",
+        "m3u8"
+      ],
+      "logo": "https://i.postimg.cc/qqkLSyhN/movieblast.png",
+      "contentLanguage": [
+        "en",
+        "hi",
+        "ta",
+        "te"
+      ]
+    },
+    {
+      "id": "streamflix",
+      "name": "Streamflix",
+      "description": "Direct links via StreamFlix in Hindi",
+      "version": "1.0.0",
+      "author": "ummarm",
+      "supportedTypes": [
+        "movie",
+        "tv"
+      ],
+      "filename": "providers/streamflix.js",
+      "enabled": true,
+      "formats": [
+        "mp4",
+        "m3u8"
+      ],
+      "logo": "https://i.postimg.cc/4yVjQjpH/streamflix.png",
+      "contentLanguage": [
+        "en"
       ]
     }
   ]

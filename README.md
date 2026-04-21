@@ -1,11 +1,13 @@
 # Doom-plug
 
-This bundle keeps only these four scrapers from `D3adlyRocket/All-in-One-Nuvio`:
+This bundle keeps only these six scrapers from `D3adlyRocket/All-in-One-Nuvio`:
 
 - `4KHDHub`
 - `HDHub4u`
 - `4khdhub-tv`
 - `HindMoviez`
+- `MovieBlast`
+- `StreamFlix`
 
 ## Files
 
@@ -14,6 +16,8 @@ This bundle keeps only these four scrapers from `D3adlyRocket/All-in-One-Nuvio`:
 - `providers/4khdhub_tv.js`
 - `providers/hdhub4u.js`
 - `providers/hindmoviez.js`
+- `providers/movieblast.js`
+- `providers/streamflix.js`
 
 ## How to publish
 
@@ -51,3 +55,5 @@ Tracked upstream files:
 - `providers/4khdhub_tv.js`
 - `providers/hdhub4u.js`
 - `providers/hindmoviez.js`
+- `providers/movieblast.js`
+- `providers/streamflix.js`

@@ -49,6 +49,8 @@ PROVIDERS = (
     Provider("4khdhubtv", "providers/4khdhub_tv.js"),
     Provider("hdhub4u", "providers/hdhub4u.js"),
     Provider("hindmoviez", "providers/hindmoviez.js"),
+    Provider("movieblast", "providers/movieblast.js"),
+    Provider("streamflix", "providers/streamflix.js"),
 )
 
 

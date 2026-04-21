@@ -49,6 +49,8 @@ jobs:
             providers/4khdhub_tv.js
             providers/hdhub4u.js
             providers/hindmoviez.js
+            providers/movieblast.js
+            providers/streamflix.js
           branch: automation/upstream-sync
           delete-branch: true
           commit-message: "chore: sync upstream Doom-plug scrapers"
