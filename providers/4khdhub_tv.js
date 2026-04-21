@@ -332,14 +332,6 @@ function extractHubCloud(hubCloudUrl, baseMeta) {
           url: href,
           meta: currentMeta
         });
-      } else if (text.includes("PixelServer")) {
-        const pixelUrl = href.replace("/u/", "/api/file/");
-        results.push({
-          source: "PixelServer",
-          url: pixelUrl,
-          meta: currentMeta
-        });
-      }
     });
     return results;
   });

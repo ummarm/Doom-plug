@@ -476,42 +476,13 @@ function hubCloudExtractor(url, referer) {
         const link = $(element).attr("href");
         const text = $(element).text().toLowerCase();
         const fileName = header || headerDetails || "Unknown";
-        if (text.includes("download file") || text.includes("fsl server") || text.includes("s3 server") || text.includes("fslv2") || text.includes("mega server")) {
-          let label = "HubCloud";
+        if (text.includes("download file") || text.includes("fsl server") || text.includes("fslv2")) {
+          let label = "HubCloud - FSL";
           if (text.includes("fsl server"))
             label = "HubCloud - FSL";
-          else if (text.includes("s3 server"))
-            label = "HubCloud - S3";
           else if (text.includes("fslv2"))
             label = "HubCloud - FSLv2";
-          else if (text.includes("mega server"))
-            label = "HubCloud - Mega";
           links.push({ source: `${label} ${labelExtras}`, quality, url: link, size: sizeInBytes, fileName });
-        } else if (text.includes("buzzserver")) {
-          try {
-            const buzzResp = yield fetch(`${link}/download`, { method: "GET", headers: __spreadProps(__spreadValues({}, HEADERS), { Referer: link }) });
-            if (buzzResp.url && buzzResp.url !== `${link}/download`) {
-              links.push({ source: `HubCloud - BuzzServer ${labelExtras}`, quality, url: buzzResp.url, size: sizeInBytes, fileName });
-            }
-          } catch (e) {
-          }
-        } else if (text.includes("10gbps")) {
-          try {
-            const resp = yield fetch(link, { method: "GET", redirect: "manual" });
-            const loc = resp.headers.get("location");
-            if (loc && loc.includes("link=")) {
-              const dlink = loc.substring(loc.indexOf("link=") + 5);
-              links.push({ source: `HubCloud - 10Gbps ${labelExtras}`, quality, url: dlink, size: sizeInBytes, fileName });
-            }
-          } catch (e) {
-          }
-        } else if (link && link.includes("pixeldra")) {
-          const results = yield pixelDrainExtractor(link);
-          links.push(...results.map((l) => __spreadProps(__spreadValues({}, l), { source: `${l.source} ${labelExtras}`, size: sizeInBytes, fileName })));
-        } else if (link && !link.includes("magnet:") && link.startsWith("http")) {
-          const extracted = yield loadExtractor(link, finalUrl);
-          links.push(...extracted.map((l) => __spreadProps(__spreadValues({}, l), { quality: l.quality || quality })));
-        }
       }
       return links;
     } catch (e) {
@@ -736,6 +707,7 @@ function getStreams(tmdbId, mediaType = "movie", season = null, episode = null) 
       if (mediaType === "tv" && episode !== null) {
         filteredLinks = finalLinks.filter((link) => link.episode === episode);
       }
+      filteredLinks = filteredLinks.filter((link) => /fsl/i.test(link.source || ""));
       const streams = filteredLinks.map((link) => {
         let mediaTitle = link.fileName && link.fileName !== "Unknown" ? link.fileName : mediaInfo.title;
         if (mediaType === "tv" && season && episode) {

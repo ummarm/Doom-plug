@@ -1,7 +1,7 @@
 {
   "name": "doom-plug",
   "private": true,
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Doom-plug: a Nuvio scraper bundle with 4KHDHub, HDHub4u, 4khdhub-tv, HindMoviez, MovieBlast, and Streamflix.",
   "license": "GPL-3.0",
   "dependencies": {

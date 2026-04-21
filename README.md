@@ -38,6 +38,7 @@ https://raw.githubusercontent.com/<your-user>/<your-repo>/main/manifest.json
 - If you keep redistributing these files, keep the original license terms and attribution in mind.
 - `4KHDHub`, `4khdhub-tv`, and `HDHub4u` now read domain data from this repo's `domains.json`.
 - `HindMoviez` now returns resolved direct URLs instead of relying on the upstream Cloudflare worker.
+- `4KHDHub`, `4khdhub-tv`, and `HDHub4u` are patched to prefer only FSL-family links in Doom-plug.
 
 ## Upstream monitoring
 

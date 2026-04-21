@@ -106,9 +106,54 @@ def patch_hindmoviez_source(text: str) -> str:
     return updated
 
 
+def patch_4khdhub_fsl_only(text: str) -> str:
+    updated, count = re.subn(
+        r"""\s*} else if \(text\.includes\("PixelServer"\)\) \{\n\s*const pixelUrl = href\.replace\("/u/", "/api/file/"\);\n\s*results\.push\(\{\n\s*source: "PixelServer",\n\s*url: pixelUrl,\n\s*meta: currentMeta\n\s*\}\);\n\s*}""",
+        "",
+        text,
+        count=1,
+    )
+    if count != 1:
+        raise RuntimeError("Could not strip PixelServer branch from 4KHDHub provider")
+    return updated
+
+
+def patch_hdhub4u_fsl_only(text: str) -> str:
+    updated = text
+    updated, count = re.subn(
+        r'if \(text\.includes\("download file"\) \|\| text\.includes\("fsl server"\) \|\| text\.includes\("s3 server"\) \|\| text\.includes\("fslv2"\) \|\| text\.includes\("mega server"\)\) \{\n\s*let label = "HubCloud";\n\s*if \(text\.includes\("fsl server"\)\)\n\s*label = "HubCloud - FSL";\n\s*else if \(text\.includes\("s3 server"\)\)\n\s*label = "HubCloud - S3";\n\s*else if \(text\.includes\("fslv2"\)\)\n\s*label = "HubCloud - FSLv2";\n\s*else if \(text\.includes\("mega server"\)\)\n\s*label = "HubCloud - Mega";',
+        'if (text.includes("download file") || text.includes("fsl server") || text.includes("fslv2")) {\n          let label = "HubCloud - FSL";\n          if (text.includes("fsl server"))\n            label = "HubCloud - FSL";\n          else if (text.includes("fslv2"))\n            label = "HubCloud - FSLv2";',
+        updated,
+        count=1,
+    )
+    if count != 1:
+        raise RuntimeError("Could not restrict HDHub4u primary HubCloud labels to FSL variants")
+    updated, count = re.subn(
+        r'\s*} else if \(text\.includes\("buzzserver"\)\) \{[\s\S]*?\s*} else if \(link && !link\.includes\("magnet:"\) && link\.startsWith\("http"\)\) \{\n\s*const extracted = yield loadExtractor\(link, finalUrl\);\n\s*links\.push\(\.\.\.extracted\.map\(\(l\) => __spreadProps\(__spreadValues\(\{\}, l\), \{ quality: l\.quality \|\| quality \}\)\)\);\n\s*}',
+        "",
+        updated,
+        count=1,
+    )
+    if count != 1:
+        raise RuntimeError("Could not remove non-FSL extractor branches from HDHub4u provider")
+    updated, count = re.subn(
+        r"(\s*if \(mediaType === \"tv\" && episode !== null\) \{\n\s*filteredLinks = finalLinks\.filter\(\(link\) => link\.episode === episode\);\n\s*})",
+        r'\1\n      filteredLinks = filteredLinks.filter((link) => /fsl/i.test(link.source || ""));',
+        updated,
+        count=1,
+    )
+    if count != 1:
+        raise RuntimeError("Could not add final FSL-only filter to HDHub4u provider")
+    return updated
+
+
 def transform_source(provider: Provider, text: str) -> str:
     if provider.scraper_id in {"4khdhub", "4khdhubtv", "hdhub4u"}:
         text = patch_domain_source(text)
+    if provider.scraper_id in {"4khdhub", "4khdhubtv"}:
+        text = patch_4khdhub_fsl_only(text)
+    elif provider.scraper_id == "hdhub4u":
+        text = patch_hdhub4u_fsl_only(text)
     elif provider.scraper_id == "hindmoviez":
         text = patch_hindmoviez_source(text)
     return text.rstrip("\n") + "\n"
