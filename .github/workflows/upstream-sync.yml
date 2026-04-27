@@ -50,6 +50,7 @@ jobs:
             providers/hdhub4u.js
             providers/hindmoviez.js
             providers/movieblast.js
+            providers/moviesdrive.js
             providers/streamflix.js
           branch: automation/upstream-sync
           delete-branch: true

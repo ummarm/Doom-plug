@@ -1,12 +1,13 @@
 # Doom-plug
 
-This bundle keeps only these six scrapers from `D3adlyRocket/All-in-One-Nuvio`:
+This bundle keeps only these seven scrapers from `D3adlyRocket/All-in-One-Nuvio`:
 
 - `4KHDHub`
 - `HDHub4u`
 - `4khdhub-tv`
 - `HindMoviez`
 - `MovieBlast`
+- `MoviesDrive`
 - `StreamFlix`
 
 ## Files
@@ -17,6 +18,7 @@ This bundle keeps only these six scrapers from `D3adlyRocket/All-in-One-Nuvio`:
 - `providers/hdhub4u.js`
 - `providers/hindmoviez.js`
 - `providers/movieblast.js`
+- `providers/moviesdrive.js`
 - `providers/streamflix.js`
 
 ## How to publish
@@ -38,7 +40,7 @@ https://raw.githubusercontent.com/<your-user>/<your-repo>/main/manifest.json
 - If you keep redistributing these files, keep the original license terms and attribution in mind.
 - `4KHDHub`, `4khdhub-tv`, and `HDHub4u` now read domain data from this repo's `domains.json`.
 - `HindMoviez` now returns resolved direct URLs instead of relying on the upstream Cloudflare worker.
-- `4KHDHub`, `4khdhub-tv`, and `HDHub4u` are patched to prefer only FSL-family links in Doom-plug.
+- `4KHDHub`, `4khdhub-tv`, and `HDHub4u` are patched to prefer FSL-family links first, but they fall back to the original available links if no FSL link exists.
 
 ## Upstream monitoring
 
@@ -57,4 +59,5 @@ Tracked upstream files:
 - `providers/hdhub4u.js`
 - `providers/hindmoviez.js`
 - `providers/movieblast.js`
+- `providers/moviesdrive.js`
 - `providers/streamflix.js`

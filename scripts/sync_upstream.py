@@ -33,24 +33,26 @@ USER_AGENT = "Doom-plug upstream sync"
 @dataclass(frozen=True)
 class Provider:
     scraper_id: str
-    relative_path: str
+    upstream_path: str
+    local_path_str: str
 
     @property
     def local_path(self) -> Path:
-        return REPO_ROOT / self.relative_path
+        return REPO_ROOT / self.local_path_str
 
     @property
     def upstream_url(self) -> str:
-        return f"{UPSTREAM_RAW_BASE}/{self.relative_path}"
+        return f"{UPSTREAM_RAW_BASE}/{self.upstream_path}"
 
 
 PROVIDERS = (
-    Provider("4khdhub", "providers/4khdhub.js"),
-    Provider("4khdhubtv", "providers/4khdhub_tv.js"),
-    Provider("hdhub4u", "providers/hdhub4u.js"),
-    Provider("hindmoviez", "providers/hindmoviez.js"),
-    Provider("movieblast", "providers/movieblast.js"),
-    Provider("streamflix", "providers/streamflix.js"),
+    Provider("4khdhub", "providers/4khdhub.js", "providers/4khdhub.js"),
+    Provider("4khdhubtv", "providers/4khdhub_tv.js", "providers/4khdhub_tv.js"),
+    Provider("hdhub4u", "providers/hdhub4u.js", "providers/hdhub4u.js"),
+    Provider("hindmoviez", "providers/hindmoviez.js", "providers/hindmoviez.js"),
+    Provider("movieblast", "providers/movieblast.js", "providers/movieblast.js"),
+    Provider("moviesdrive", "src/providers/moviesdrive.js", "providers/moviesdrive.js"),
+    Provider("streamflix", "providers/streamflix.js", "providers/streamflix.js"),
 )
 
 
@@ -78,7 +80,7 @@ def fetch_text(url: str) -> str:
 
 def patch_domain_source(text: str) -> str:
     updated, count = re.subn(
-        r'var DOMAINS_URL = "[^"]+";',
+        r'(?:var|const)\s+DOMAINS_URL = "[^"]+";',
         f'var DOMAINS_URL = "{DOOM_DOMAINS_URL}";',
         text,
         count=1,
@@ -95,65 +97,48 @@ def patch_hindmoviez_source(text: str) -> str:
         text,
         count=1,
     )
+    text, call_count = re.subn(r"(:\s*)hmProxyUrl\(([^)]+)\)", r"\1\2", text)
+    text, assign_count = re.subn(
+        r"((?:var|const|let)\s+proxiedUrl\s*=\s*)hmProxyUrl\(([^)]+)\);",
+        r"\1\2;",
+        text,
+    )
+    if call_count + assign_count < 1:
+        raise RuntimeError("Could not remove hmProxyUrl wrapper from HindMoviez provider")
+    return text
+
+
+def patch_4khdhub_fsl_preferred(text: str) -> str:
     updated, count = re.subn(
-        r"((?:var|const|let)\s+proxiedUrl\s*=\s*)hmProxyUrl\(url\);",
-        r"\1url;",
+        r"(\s*const extractedLinks = yield extractHubCloud\(sourceResult\.url, sourceResult\.meta\);\n)\s*return extractedLinks\.map\(",
+        r'\1          const fslLinks = extractedLinks.filter((link) => link.source === "FSL");\n          const preferredLinks = fslLinks.length ? fslLinks : extractedLinks;\n          return preferredLinks.map(',
         text,
         count=1,
     )
     if count != 1:
-        raise RuntimeError("Could not switch HindMoviez away from hmProxyUrl(url)")
+        raise RuntimeError("Could not add FSL-first fallback logic to 4KHDHub provider")
     return updated
 
 
-def patch_4khdhub_fsl_only(text: str) -> str:
-    updated, count = re.subn(
-        r"""\s*} else if \(text\.includes\("PixelServer"\)\) \{\n\s*const pixelUrl = href\.replace\("/u/", "/api/file/"\);\n\s*results\.push\(\{\n\s*source: "PixelServer",\n\s*url: pixelUrl,\n\s*meta: currentMeta\n\s*\}\);\n\s*}""",
-        "",
-        text,
-        count=1,
-    )
-    if count != 1:
-        raise RuntimeError("Could not strip PixelServer branch from 4KHDHub provider")
-    return updated
-
-
-def patch_hdhub4u_fsl_only(text: str) -> str:
-    updated = text
-    updated, count = re.subn(
-        r'if \(text\.includes\("download file"\) \|\| text\.includes\("fsl server"\) \|\| text\.includes\("s3 server"\) \|\| text\.includes\("fslv2"\) \|\| text\.includes\("mega server"\)\) \{\n\s*let label = "HubCloud";\n\s*if \(text\.includes\("fsl server"\)\)\n\s*label = "HubCloud - FSL";\n\s*else if \(text\.includes\("s3 server"\)\)\n\s*label = "HubCloud - S3";\n\s*else if \(text\.includes\("fslv2"\)\)\n\s*label = "HubCloud - FSLv2";\n\s*else if \(text\.includes\("mega server"\)\)\n\s*label = "HubCloud - Mega";',
-        'if (text.includes("download file") || text.includes("fsl server") || text.includes("fslv2")) {\n          let label = "HubCloud - FSL";\n          if (text.includes("fsl server"))\n            label = "HubCloud - FSL";\n          else if (text.includes("fslv2"))\n            label = "HubCloud - FSLv2";',
-        updated,
-        count=1,
-    )
-    if count != 1:
-        raise RuntimeError("Could not restrict HDHub4u primary HubCloud labels to FSL variants")
-    updated, count = re.subn(
-        r'\s*} else if \(text\.includes\("buzzserver"\)\) \{[\s\S]*?\s*} else if \(link && !link\.includes\("magnet:"\) && link\.startsWith\("http"\)\) \{\n\s*const extracted = yield loadExtractor\(link, finalUrl\);\n\s*links\.push\(\.\.\.extracted\.map\(\(l\) => __spreadProps\(__spreadValues\(\{\}, l\), \{ quality: l\.quality \|\| quality \}\)\)\);\n\s*}',
-        "",
-        updated,
-        count=1,
-    )
-    if count != 1:
-        raise RuntimeError("Could not remove non-FSL extractor branches from HDHub4u provider")
+def patch_hdhub4u_fsl_preferred(text: str) -> str:
     updated, count = re.subn(
         r"(\s*if \(mediaType === \"tv\" && episode !== null\) \{\n\s*filteredLinks = finalLinks\.filter\(\(link\) => link\.episode === episode\);\n\s*})",
-        r'\1\n      filteredLinks = filteredLinks.filter((link) => /fsl/i.test(link.source || ""));',
-        updated,
+        r'\1\n      const fslLinks = filteredLinks.filter((link) => /fsl/i.test(link.source || ""));\n      if (fslLinks.length) {\n        filteredLinks = fslLinks;\n      }',
+        text,
         count=1,
     )
     if count != 1:
-        raise RuntimeError("Could not add final FSL-only filter to HDHub4u provider")
+        raise RuntimeError("Could not add FSL-first fallback logic to HDHub4u provider")
     return updated
 
 
 def transform_source(provider: Provider, text: str) -> str:
-    if provider.scraper_id in {"4khdhub", "4khdhubtv", "hdhub4u"}:
+    if provider.scraper_id in {"4khdhub", "4khdhubtv", "hdhub4u", "moviesdrive"}:
         text = patch_domain_source(text)
     if provider.scraper_id in {"4khdhub", "4khdhubtv"}:
-        text = patch_4khdhub_fsl_only(text)
+        text = patch_4khdhub_fsl_preferred(text)
     elif provider.scraper_id == "hdhub4u":
-        text = patch_hdhub4u_fsl_only(text)
+        text = patch_hdhub4u_fsl_preferred(text)
     elif provider.scraper_id == "hindmoviez":
         text = patch_hindmoviez_source(text)
     return text.rstrip("\n") + "\n"
@@ -208,8 +193,9 @@ def write_pr_body(changed: list[Provider], version_changes: list[str], run_date:
             "",
             "## Doom-plug local patches preserved",
             "",
-            "- `4KHDHub`, `4khdhub-tv`, and `HDHub4u` still point at Doom-plug's own `domains.json`.",
+            "- `4KHDHub`, `4khdhub-tv`, `HDHub4u`, and `MoviesDrive` still point at Doom-plug's own `domains.json`.",
             "- `HindMoviez` still uses direct resolved URLs instead of the upstream worker proxy.",
+            "- `4KHDHub`, `4khdhub-tv`, and `HDHub4u` keep Doom-plug's FSL-first fallback behavior.",
             "",
             "## Version bumps",
             "",

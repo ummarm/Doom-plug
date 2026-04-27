@@ -420,6 +420,14 @@ function extractHubCloud(hubCloudUrl, baseMeta) {
           url: href,
           meta: currentMeta
         });
+      } else if (text.includes("PixelServer")) {
+        const pixelUrl = href.replace("/u/", "/api/file/");
+        results.push({
+          source: "PixelServer",
+          url: pixelUrl,
+          meta: currentMeta
+        });
+      }
     });
     return results;
   });
@@ -470,7 +478,9 @@ function getStreams(tmdbId, type, season, episode) {
           console.log(`[4KHDHub] Extracting from HubCloud: ${sourceResult.url}`);
           const cardInfo = parseCardInfo($, item);
           const extractedLinks = yield extractHubCloud(sourceResult.url, sourceResult.meta);
-          return extractedLinks.map((link) => {
+          const fslLinks = extractedLinks.filter((link) => link.source === "FSL");
+          const preferredLinks = fslLinks.length ? fslLinks : extractedLinks;
+          return preferredLinks.map((link) => {
             // Line 1: title · S01E03 (for TV) + quality
             let titleLine = title;
             if (isSeries && season && episode) {

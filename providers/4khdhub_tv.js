@@ -332,6 +332,14 @@ function extractHubCloud(hubCloudUrl, baseMeta) {
           url: href,
           meta: currentMeta
         });
+      } else if (text.includes("PixelServer")) {
+        const pixelUrl = href.replace("/u/", "/api/file/");
+        results.push({
+          source: "PixelServer",
+          url: pixelUrl,
+          meta: currentMeta
+        });
+      }
     });
     return results;
   });
@@ -381,7 +389,9 @@ function getStreams(tmdbId, type, season, episode) {
         if (sourceResult && sourceResult.url) {
           console.log(`[4KHDHub] Extracting from HubCloud: ${sourceResult.url}`);
           const extractedLinks = yield extractHubCloud(sourceResult.url, sourceResult.meta);
-          return extractedLinks.map((link) => ({
+          const fslLinks = extractedLinks.filter((link) => link.source === "FSL");
+          const preferredLinks = fslLinks.length ? fslLinks : extractedLinks;
+          return preferredLinks.map((link) => ({
             name: `4KHDHub - ${link.source}${sourceResult.meta.height ? ` ${sourceResult.meta.height}p` : ""}`,
             title: `${link.meta.title}
 ${formatBytes(link.meta.bytes || 0)}`,
