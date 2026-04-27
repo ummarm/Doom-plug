@@ -47,8 +47,8 @@ https://raw.githubusercontent.com/<your-user>/<your-repo>/main/manifest.json
 This repo now includes a GitHub Actions workflow at `.github/workflows/upstream-sync.yml`.
 
 - It checks the upstream repo every day.
-- Real sync work only happens every 4 days, anchored from `2026-04-20`.
-- That means the cadence lands on dates like `2026-04-20`, `2026-04-24`, `2026-04-28`, and so on.
+- Real sync work only happens every 2 days, anchored from `2026-04-20`.
+- That means the cadence lands on dates like `2026-04-20`, `2026-04-22`, `2026-04-24`, `2026-04-26`, `2026-04-28`, and so on.
 - If one of the tracked upstream scrapers changes, the workflow updates the local provider file, preserves Doom-plug's local patches, bumps the affected version numbers in `manifest.json`, and opens a pull request automatically.
 - You can also run it manually from the GitHub Actions tab with `force=true`.
 

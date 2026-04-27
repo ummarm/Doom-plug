@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
     inputs:
       force:
-        description: "Run now even if today is outside the 4-day cadence"
+        description: "Run now even if today is outside the 2-day cadence"
         required: false
         default: false
         type: boolean

@@ -24,7 +24,7 @@ PR_BODY_PATH = Path(
     os.environ.get("PR_BODY_PATH", str(REPO_ROOT / ".git" / "upstream-sync-pr-body.md"))
 )
 ANCHOR_DATE = date(2026, 4, 20)
-CADENCE_DAYS = 4
+CADENCE_DAYS = 2
 UPSTREAM_RAW_BASE = "https://raw.githubusercontent.com/D3adlyRocket/All-in-One-Nuvio/main"
 DOOM_DOMAINS_URL = "https://raw.githubusercontent.com/ummarm/Doom-plug/main/domains.json"
 USER_AGENT = "Doom-plug upstream sync"
@@ -234,11 +234,11 @@ def main() -> int:
             [
                 "## Doom-plug upstream sync",
                 "",
-                f"Skipped on `{today_utc.isoformat()}` UTC because the 4-day cadence is anchored to `{ANCHOR_DATE.isoformat()}`.",
+                f"Skipped on `{today_utc.isoformat()}` UTC because the 2-day cadence is anchored to `{ANCHOR_DATE.isoformat()}`.",
                 "The workflow still runs daily so manual dispatch stays available, but real sync work only happens on cadence days unless `force` is enabled.",
             ]
         )
-        print("Not on the 4-day sync cadence; skipping.")
+        print("Not on the 2-day sync cadence; skipping.")
         return 0
 
     changed_providers: list[Provider] = []
