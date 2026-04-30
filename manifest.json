@@ -1,6 +1,6 @@
 {
   "name": "Doom-plug",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "scrapers": [
     {
       "id": "4khdhub",
@@ -140,7 +140,7 @@
       "id": "streamflix",
       "name": "Streamflix",
       "description": "Direct links via StreamFlix in Hindi",
-      "version": "1.0.1",
+      "version": "1.0.2",
       "author": "ummarm",
       "supportedTypes": [
         "movie",
