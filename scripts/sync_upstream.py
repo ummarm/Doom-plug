@@ -12,6 +12,7 @@ import json
 import os
 import re
 import sys
+from urllib.error import HTTPError
 import urllib.request
 from dataclasses import dataclass
 from datetime import date, datetime, timezone
@@ -177,7 +178,12 @@ def update_manifest(changed_ids: set[str]) -> list[str]:
     return version_changes
 
 
-def write_pr_body(changed: list[Provider], version_changes: list[str], run_date: date) -> None:
+def write_pr_body(
+    changed: list[Provider],
+    version_changes: list[str],
+    warnings: list[str],
+    run_date: date,
+) -> None:
     PR_BODY_PATH.parent.mkdir(parents=True, exist_ok=True)
     lines = [
         "## What changed",
@@ -202,6 +208,9 @@ def write_pr_body(changed: list[Provider], version_changes: list[str], run_date:
         ]
     )
     lines.extend(f"- {item}" for item in version_changes)
+    if warnings:
+        lines.extend(["", "## Skipped providers", ""])
+        lines.extend(f"- {item}" for item in warnings)
     lines.extend(
         [
             "",
@@ -242,10 +251,30 @@ def main() -> int:
         return 0
 
     changed_providers: list[Provider] = []
+    sync_warnings: list[str] = []
 
     for provider in PROVIDERS:
-        upstream_text = fetch_text(provider.upstream_url)
-        transformed_text = transform_source(provider, upstream_text)
+        try:
+            upstream_text = fetch_text(provider.upstream_url)
+        except HTTPError as exc:
+            if exc.code != 404:
+                raise
+            warning = (
+                f"`{provider.scraper_id}` was skipped because upstream no longer serves "
+                f"`{provider.upstream_path}`."
+            )
+            sync_warnings.append(warning)
+            print(f"Warning: {warning}")
+            continue
+
+        try:
+            transformed_text = transform_source(provider, upstream_text)
+        except RuntimeError as exc:
+            warning = f"`{provider.scraper_id}` was skipped because local patching failed: {exc}"
+            sync_warnings.append(warning)
+            print(f"Warning: {warning}")
+            continue
+
         local_text = provider.local_path.read_text(encoding="utf-8")
 
         if transformed_text != local_text:
@@ -253,36 +282,43 @@ def main() -> int:
             changed_providers.append(provider)
 
     if not changed_providers:
+        summary_lines = [
+            "## Doom-plug upstream sync",
+            "",
+            f"No upstream changes were applied on `{today_utc.isoformat()}` UTC.",
+        ]
+        if sync_warnings:
+            summary_lines.extend(["", "Skipped providers:"])
+            summary_lines.extend(f"- {item}" for item in sync_warnings)
         write_output("changed", "false")
         write_output("skipped", "false")
-        write_summary(
-            [
-                "## Doom-plug upstream sync",
-                "",
-                f"No upstream changes were found for the tracked providers on `{today_utc.isoformat()}` UTC.",
-            ]
-        )
-        print("No upstream changes detected.")
+        write_summary(summary_lines)
+        if sync_warnings:
+            print("No upstream changes applied; some providers were skipped.")
+        else:
+            print("No upstream changes detected.")
         return 0
 
     changed_ids = {provider.scraper_id for provider in changed_providers}
     version_changes = update_manifest(changed_ids)
-    write_pr_body(changed_providers, version_changes, today_utc)
+    write_pr_body(changed_providers, version_changes, sync_warnings, today_utc)
 
     changed_names = ",".join(provider.scraper_id for provider in changed_providers)
     write_output("changed", "true")
     write_output("skipped", "false")
     write_output("changed_scrapers", changed_names)
-    write_summary(
-        [
-            "## Doom-plug upstream sync",
-            "",
-            f"Updated scrapers: `{changed_names}`",
-            "",
-            "Version bumps:",
-            *[f"- {item}" for item in version_changes],
-        ]
-    )
+    summary_lines = [
+        "## Doom-plug upstream sync",
+        "",
+        f"Updated scrapers: `{changed_names}`",
+        "",
+        "Version bumps:",
+        *[f"- {item}" for item in version_changes],
+    ]
+    if sync_warnings:
+        summary_lines.extend(["", "Skipped providers:"])
+        summary_lines.extend(f"- {item}" for item in sync_warnings)
+    write_summary(summary_lines)
     print(f"Updated providers: {changed_names}")
     return 0
 
