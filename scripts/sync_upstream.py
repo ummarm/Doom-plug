@@ -73,6 +73,7 @@ PROVIDERS = (
     Provider("hdhub4u", ("providers/hdhub4u.js", "src/hdhub4u/index.js"), "providers/hdhub4u.js", ("hdhub4u",)),
     Provider("hindmoviez", ("providers/hindmoviez.js",), "providers/hindmoviez.js", ("hindmoviez",)),
     Provider("movieblast", ("providers/movieblast.js",), "providers/movieblast.js", ("movieblast",)),
+    Provider("moviebox", ("providers/moviebox.js",), "providers/moviebox.js", ("moviebox",)),
     Provider("moviesdrive", ("src/providers/moviesdrive.js", "providers/moviesdrive.js"), "providers/moviesdrive.js", ("moviesdrive",)),
     Provider("streamflix", ("providers/streamflix.js",), "providers/streamflix.js", ("streamflix",)),
 )
@@ -431,9 +432,14 @@ def main() -> int:
             print(f"Warning: {warning}")
             continue
 
-        local_text = provider.local_path.read_text(encoding="utf-8")
+        local_text = (
+            provider.local_path.read_text(encoding="utf-8")
+            if provider.local_path.exists()
+            else ""
+        )
 
         if transformed_text != local_text:
+            provider.local_path.parent.mkdir(parents=True, exist_ok=True)
             provider.local_path.write_text(transformed_text, encoding="utf-8")
             changed_providers.append(resolved_provider)
 

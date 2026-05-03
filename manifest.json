@@ -1,6 +1,6 @@
 {
   "name": "Doom-plug",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "scrapers": [
     {
       "id": "4khdhub",
@@ -111,6 +111,29 @@
         "hi",
         "ta",
         "te"
+      ]
+    },
+    {
+      "id": "moviebox",
+      "name": "MovieBox",
+      "description": "MovieBox - Worker-backed direct streams for movies and TV",
+      "version": "1.0.1",
+      "author": "ummarm",
+      "supportedTypes": [
+        "movie",
+        "tv"
+      ],
+      "filename": "providers/moviebox.js",
+      "enabled": true,
+      "formats": [
+        "mp4",
+        "mkv",
+        "m3u8"
+      ],
+      "logo": "https://i.postimg.cc/qqw7ZW0J/moviebox.png",
+      "contentLanguage": [
+        "en",
+        "hi"
       ]
     },
     {
