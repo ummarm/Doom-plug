@@ -1,6 +1,6 @@
 {
   "name": "Doom-plug",
-  "version": "1.0.8",
+  "version": "1.0.10",
   "scrapers": [
     {
       "id": "4khdhub",
@@ -27,7 +27,7 @@
       "id": "4khdhubtv",
       "name": "4khdhub-tv",
       "description": "4KHDHub TV direct links",
-      "version": "1.0.3",
+      "version": "1.0.4",
       "author": "ummarm",
       "supportedTypes": [
         "movie",
@@ -140,7 +140,7 @@
       "id": "moviesdrive",
       "name": "MoviesDrive",
       "description": "MoviesDrive - Movies and TV shows with multiple streaming servers",
-      "version": "1.0.1",
+      "version": "1.0.2",
       "author": "ummarm",
       "supportedTypes": [
         "movie",

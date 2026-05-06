@@ -194,6 +194,38 @@ def patch_domain_source(text: str) -> str:
     return updated
 
 
+def patch_moviesdrive_domain_source(text: str) -> str:
+    if "DOMAIN_JSON_URL" in text:
+        updated, count = re.subn(
+            r"""(?:var|const|let)\s+DOMAIN_JSON_URL\s*=\s*["'][^"']+["'];""",
+            f'const DOMAIN_JSON_URL = "{DOOM_DOMAINS_URL}";',
+            text,
+            count=1,
+        )
+        if count != 1:
+            raise RuntimeError("Could not retarget DOMAIN_JSON_URL to Doom-plug domains.json")
+        old_block = """if (data && data[PROVIDER_KEY] && data[PROVIDER_KEY].url) {
+          moviesDriveDomain = data[PROVIDER_KEY].url.replace(/\\/$/, "");
+          domainCacheTimestamp = now;
+          console.log(`[MoviesDrive] Domain set to: ${moviesDriveDomain}`);
+        }
+"""
+        new_block = """if (data) {
+          const resolvedDomain = data.Moviesdrive || (typeof data[PROVIDER_KEY] === "string" ? data[PROVIDER_KEY] : data[PROVIDER_KEY] && data[PROVIDER_KEY].url);
+          if (resolvedDomain) {
+            moviesDriveDomain = resolvedDomain.replace(/\\/$/, "");
+            domainCacheTimestamp = now;
+            console.log(`[MoviesDrive] Domain set to: ${moviesDriveDomain}`);
+          }
+        }
+"""
+        if old_block not in updated:
+            raise RuntimeError("Could not adapt MoviesDrive domain reader to Doom-plug domains.json")
+        return updated.replace(old_block, new_block, 1)
+
+    return patch_domain_source(text)
+
+
 def patch_hindmoviez_source(text: str) -> str:
     text = re.sub(
         r"// ── Cloudflare Worker proxy[\s\S]*?const DEFAULT_HEADERS = \{",
@@ -270,8 +302,10 @@ def patch_hdhub4u_fsl_preferred(text: str) -> str:
 
 
 def transform_source(provider: Provider, text: str) -> str:
-    if provider.scraper_id in {"4khdhub", "4khdhubtv", "hdhub4u", "moviesdrive"}:
+    if provider.scraper_id in {"4khdhub", "4khdhubtv", "hdhub4u"}:
         text = patch_domain_source(text)
+    elif provider.scraper_id == "moviesdrive":
+        text = patch_moviesdrive_domain_source(text)
     if provider.scraper_id in {"4khdhub", "4khdhubtv"}:
         text = patch_4khdhub_fsl_preferred(text)
     elif provider.scraper_id == "hdhub4u":
