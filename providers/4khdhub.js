@@ -455,7 +455,12 @@ function resolveHubcloud(url, sourceTitle, referer, quality) {
 
       streams.push(buildStream(subSource, finalUrl, foundQuality, { Referer: entryUrl }, size, tech));
     });
-    const preferredStreams = streams.filter((stream) => !/(BuzzServer|Pixeldrain)/i.test(`${stream.name || ""} ${stream.title || ""}`));
+    const primaryStreams = streams.filter((stream) => !/(BuzzServer|Pixeldrain)/i.test(`${stream.name || ""} ${stream.title || ""}`));
+    const hindiStreams = streams.filter((stream) => /\bHindi\b/i.test(`${stream.name || ""} ${stream.title || ""}`));
+    const preferredStreams = primaryStreams.slice();
+    hindiStreams.forEach((stream) => {
+      if (preferredStreams.indexOf(stream) === -1) preferredStreams.push(stream);
+    });
     return preferredStreams.length ? preferredStreams : streams;
   });
 }

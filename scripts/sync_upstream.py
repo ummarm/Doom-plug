@@ -423,8 +423,23 @@ def patch_hindmoviez_source(text: str) -> str:
 def patch_4khdhub_fsl_preferred(text: str) -> str:
     if "const preferredLinks = fslLinks.length ? fslLinks : extractedLinks;" in text:
         return text
-    if "const preferredStreams = streams.filter((stream) => !/(BuzzServer|Pixeldrain)/i.test(" in text:
+    if "const hindiStreams = streams.filter((stream) => /\\bHindi\\b/i.test(" in text:
         return text
+    old_preferred_block = (
+        'const preferredStreams = streams.filter((stream) => !/(BuzzServer|Pixeldrain)/i.test(`${stream.name || ""} ${stream.title || ""}`));\n'
+        "    return preferredStreams.length ? preferredStreams : streams;"
+    )
+    new_preferred_block = (
+        'const primaryStreams = streams.filter((stream) => !/(BuzzServer|Pixeldrain)/i.test(`${stream.name || ""} ${stream.title || ""}`));\n'
+        '    const hindiStreams = streams.filter((stream) => /\\bHindi\\b/i.test(`${stream.name || ""} ${stream.title || ""}`));\n'
+        "    const preferredStreams = primaryStreams.slice();\n"
+        "    hindiStreams.forEach((stream) => {\n"
+        "      if (preferredStreams.indexOf(stream) === -1) preferredStreams.push(stream);\n"
+        "    });\n"
+        "    return preferredStreams.length ? preferredStreams : streams;"
+    )
+    if old_preferred_block in text:
+        return text.replace(old_preferred_block, new_preferred_block, 1)
 
     updated, count = re.subn(
         r"(\s*const extractedLinks = yield extractHubCloud\(sourceResult\.url, sourceResult\.meta\);\n)\s*return extractedLinks\.map\(",
@@ -443,10 +458,7 @@ def patch_4khdhub_fsl_preferred(text: str) -> str:
     if return_anchor == -1:
         raise RuntimeError("Could not find stream return point in 4KHDHub provider")
 
-    replacement = (
-        'const preferredStreams = streams.filter((stream) => !/(BuzzServer|Pixeldrain)/i.test(`${stream.name || ""} ${stream.title || ""}`));\n'
-        "    return preferredStreams.length ? preferredStreams : streams;"
-    )
+    replacement = new_preferred_block
     return text[:return_anchor] + replacement + text[return_anchor + len("return streams;") :]
 
 
@@ -554,7 +566,7 @@ def write_pr_body(
             "",
             "- `4KHDHub`, `4khdhub-tv`, `HDHub4u`, and `MoviesDrive` still point at Doom-plug's own `domains.json`.",
             "- `HindMoviez` still uses direct resolved URLs instead of the upstream worker proxy.",
-            "- `4KHDHub` and `4khdhub-tv` keep Doom-plug's preferred-host fallback behavior, while `HDHub4u` keeps FSL-first fallback behavior.",
+            "- `4KHDHub` and `4khdhub-tv` keep Doom-plug's preferred-host fallback behavior, but still keep working Hindi-labeled links when available; `HDHub4u` keeps FSL-first fallback behavior.",
             "- All tracked providers keep Doom-plug's working-and-seekable stream validation wrapper before results are returned.",
             "",
             "## Version bumps",

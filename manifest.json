@@ -1,12 +1,12 @@
 {
   "name": "Doom-plug",
-  "version": "1.0.11",
+  "version": "1.0.12",
   "scrapers": [
     {
       "id": "4khdhub",
       "name": "4KHDHub",
       "description": "4KHDHub direct links",
-      "version": "1.0.4",
+      "version": "1.0.5",
       "author": "ummarm",
       "supportedTypes": [
         "movie",
