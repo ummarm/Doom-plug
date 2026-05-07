@@ -30,6 +30,182 @@ UPSTREAM_RAW_BASE = "https://raw.githubusercontent.com/D3adlyRocket/All-in-One-N
 UPSTREAM_TREE_API = "https://api.github.com/repos/D3adlyRocket/All-in-One-Nuvio/git/trees/main?recursive=1"
 DOOM_DOMAINS_URL = "https://raw.githubusercontent.com/ummarm/Doom-plug/main/domains.json"
 USER_AGENT = "Doom-plug upstream sync"
+SEEKABLE_VALIDATION_MARKER = "__DOOM_SEEKABLE_VALIDATION__"
+SEEKABLE_VALIDATION_SNIPPET = r"""
+// __DOOM_SEEKABLE_VALIDATION__
+var __doomProbeCache = Object.create(null);
+var __doomProbeCacheTtlMs = 10 * 60 * 1000;
+var __doomProbeTimeoutMs = 6 * 1000;
+
+function __doomMergeHeaders(base, extra) {
+  var merged = {};
+  var key;
+  for (key in base || {}) merged[key] = base[key];
+  for (key in extra || {}) merged[key] = extra[key];
+  return merged;
+}
+
+function __doomWithTimeout(promise, timeoutMs) {
+  return new Promise(function(resolve, reject) {
+    var settled = false;
+    var timer = setTimeout(function() {
+      if (settled) return;
+      settled = true;
+      reject(new Error("timeout"));
+    }, timeoutMs);
+
+    Promise.resolve(promise).then(function(value) {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      resolve(value);
+    }, function(error) {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      reject(error);
+    });
+  });
+}
+
+function __doomLooksLikeHls(url, contentType) {
+  var normalizedUrl = String(url || "").toLowerCase();
+  var normalizedType = String(contentType || "").toLowerCase();
+  return normalizedUrl.indexOf(".m3u8") !== -1
+    || normalizedType.indexOf("mpegurl") !== -1
+    || normalizedType.indexOf("application/x-mpegurl") !== -1
+    || normalizedType.indexOf("vnd.apple.mpegurl") !== -1;
+}
+
+function __doomBuildProbeCacheKey(stream) {
+  var headers = stream && stream.headers ? stream.headers : {};
+  return [
+    stream && stream.url ? stream.url : "",
+    headers.Referer || headers.referer || "",
+    headers.Origin || headers.origin || ""
+  ].join("|");
+}
+
+function __doomGetCachedProbeResult(cacheKey) {
+  var entry = __doomProbeCache[cacheKey];
+  if (!entry) return null;
+  if (Date.now() - entry.timestamp > __doomProbeCacheTtlMs) {
+    delete __doomProbeCache[cacheKey];
+    return null;
+  }
+  return entry.ok;
+}
+
+function __doomSetCachedProbeResult(cacheKey, ok) {
+  __doomProbeCache[cacheKey] = {
+    ok: !!ok,
+    timestamp: Date.now()
+  };
+}
+
+function __doomResponseIsSeekable(response, url) {
+  if (!response || !response.ok) return false;
+  var headers = response.headers;
+  var contentType = headers && headers.get ? headers.get("content-type") || "" : "";
+  if (__doomLooksLikeHls(url, contentType)) return true;
+  var acceptRanges = headers && headers.get ? headers.get("accept-ranges") || "" : "";
+  var contentRange = headers && headers.get ? headers.get("content-range") || "" : "";
+  return response.status === 206
+    || /bytes/i.test(acceptRanges)
+    || /^bytes\s+/i.test(contentRange);
+}
+
+function __doomProbeStream(stream) {
+  if (!stream || !stream.url || typeof fetch !== "function") {
+    return Promise.resolve(false);
+  }
+
+  var cacheKey = __doomBuildProbeCacheKey(stream);
+  var cached = __doomGetCachedProbeResult(cacheKey);
+  if (cached !== null) {
+    return Promise.resolve(cached);
+  }
+
+  var url = stream.url;
+  var isHls = __doomLooksLikeHls(url, "");
+  var baseHeaders = __doomMergeHeaders({}, stream.headers || {});
+  var rangedHeaders = __doomMergeHeaders({}, baseHeaders);
+  if (!isHls && !rangedHeaders.Range && !rangedHeaders.range) {
+    rangedHeaders.Range = "bytes=0-1";
+  }
+
+  var attempts = [
+    { method: "GET", headers: isHls ? baseHeaders : rangedHeaders, redirect: "follow" },
+    { method: "HEAD", headers: baseHeaders, redirect: "follow" }
+  ];
+
+  function tryAttempt(index) {
+    if (index >= attempts.length) return Promise.resolve(false);
+    return __doomWithTimeout(fetch(url, attempts[index]), __doomProbeTimeoutMs)
+      .then(function(response) {
+        if (__doomResponseIsSeekable(response, url)) return true;
+        return tryAttempt(index + 1);
+      })
+      .catch(function() {
+        return tryAttempt(index + 1);
+      });
+  }
+
+  return tryAttempt(0).then(function(ok) {
+    __doomSetCachedProbeResult(cacheKey, ok);
+    return ok;
+  });
+}
+
+function __doomFilterSeekableStreams(streams, providerLabel) {
+  if (!Array.isArray(streams) || streams.length === 0) {
+    return Promise.resolve([]);
+  }
+
+  return Promise.all(streams.map(function(stream) {
+    return __doomProbeStream(stream)
+      .then(function(ok) { return { stream: stream, ok: ok }; })
+      .catch(function() { return { stream: stream, ok: false }; });
+  })).then(function(results) {
+    var filtered = results.filter(function(item) { return item.ok; }).map(function(item) { return item.stream; });
+    var label = providerLabel || "[Doom-plug]";
+    console.log(label + " Seekable filter kept " + filtered.length + "/" + streams.length + " streams");
+    return filtered;
+  });
+}
+
+(function() {
+  if (typeof getStreams !== "function" || getStreams.__doomSeekableWrapped) {
+    return;
+  }
+
+  var __doomOriginalGetStreams = getStreams;
+  var __doomProviderLabel = typeof PLUGIN_TAG !== "undefined"
+    ? PLUGIN_TAG
+    : (typeof TAG !== "undefined" ? TAG : "[Doom-plug]");
+
+  var __doomWrappedGetStreams = function() {
+    return Promise.resolve(__doomOriginalGetStreams.apply(this, arguments))
+      .then(function(streams) {
+        return __doomFilterSeekableStreams(streams, __doomProviderLabel);
+      })
+      .catch(function(error) {
+        var message = error && error.message ? error.message : String(error);
+        console.error(__doomProviderLabel + " Seekable validation failed: " + message);
+        return [];
+      });
+  };
+
+  __doomWrappedGetStreams.__doomSeekableWrapped = true;
+  getStreams = __doomWrappedGetStreams;
+
+  if (typeof module !== "undefined" && module.exports) {
+    module.exports.getStreams = getStreams;
+  } else if (typeof global !== "undefined") {
+    global.getStreams = getStreams;
+  }
+})();
+"""
 
 
 @dataclass(frozen=True)
@@ -301,6 +477,12 @@ def patch_hdhub4u_fsl_preferred(text: str) -> str:
     return text[:map_anchor] + insertion + text[map_anchor:]
 
 
+def patch_seekable_validation(text: str) -> str:
+    if SEEKABLE_VALIDATION_MARKER in text:
+        return text
+    return text.rstrip("\n") + "\n\n" + SEEKABLE_VALIDATION_SNIPPET.strip("\n") + "\n"
+
+
 def transform_source(provider: Provider, text: str) -> str:
     if provider.scraper_id in {"4khdhub", "4khdhubtv", "hdhub4u"}:
         text = patch_domain_source(text)
@@ -312,6 +494,7 @@ def transform_source(provider: Provider, text: str) -> str:
         text = patch_hdhub4u_fsl_preferred(text)
     elif provider.scraper_id == "hindmoviez":
         text = patch_hindmoviez_source(text)
+    text = patch_seekable_validation(text)
     return text.rstrip("\n") + "\n"
 
 
@@ -372,6 +555,7 @@ def write_pr_body(
             "- `4KHDHub`, `4khdhub-tv`, `HDHub4u`, and `MoviesDrive` still point at Doom-plug's own `domains.json`.",
             "- `HindMoviez` still uses direct resolved URLs instead of the upstream worker proxy.",
             "- `4KHDHub` and `4khdhub-tv` keep Doom-plug's preferred-host fallback behavior, while `HDHub4u` keeps FSL-first fallback behavior.",
+            "- All tracked providers keep Doom-plug's working-and-seekable stream validation wrapper before results are returned.",
             "",
             "## Version bumps",
             "",
