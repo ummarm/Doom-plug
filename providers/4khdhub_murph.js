@@ -152,9 +152,19 @@ function looksLikeDirectMediaUrl(url) {
     || /\.ts(?:$|[?#])/.test(normalized);
 }
 
+function looksLikeTrustedMurphUrl(url) {
+  var normalized = String(url || "").toLowerCase();
+  if (!/^https?:\/\//i.test(normalized)) return false;
+  if (/\/login\.php\b/.test(normalized) || /action=logout/.test(normalized)) return false;
+  return looksLikeDirectMediaUrl(normalized)
+    || /https?:\/\/[^/]*\.r2\.dev\//i.test(normalized)
+    || /https?:\/\/[^/]*workers\.dev\//i.test(normalized)
+    || /https?:\/\/hub\.[^/]+\//i.test(normalized);
+}
+
 function looksLikeMurphFallbackCandidate(stream) {
   if (!stream || !stream.url) return false;
-  if (!looksLikeDirectMediaUrl(stream.url)) return false;
+  if (!looksLikeTrustedMurphUrl(stream.url)) return false;
   var size = Number(stream.videoSize || (stream.behaviorHints && stream.behaviorHints.videoSize) || 0);
   if (size > 0) return true;
   return /\[[^\]]+(gb|mb)\]/i.test(String(stream.title || ""))
@@ -164,6 +174,11 @@ function looksLikeMurphFallbackCandidate(stream) {
 function filterSeekableStreams(streams) {
   if (!Array.isArray(streams) || streams.length === 0) {
     return Promise.resolve([]);
+  }
+  var trusted = streams.filter(looksLikeMurphFallbackCandidate);
+  if (trusted.length > 0) {
+    console.log(PROVIDER_TAG + " Fast trusted filter kept " + trusted.length + "/" + streams.length + " streams");
+    return Promise.resolve(trusted);
   }
   return Promise.all(streams.map(function(stream) {
     return probeStream(stream)
