@@ -1,6 +1,6 @@
 {
   "name": "Doom-plug",
-  "version": "1.0.15",
+  "version": "1.0.16",
   "scrapers": [
     {
       "id": "4khdhub",
@@ -48,7 +48,7 @@
       "id": "4khdhub_yoruix",
       "name": "4KHDHub Yoruix",
       "description": "Alternate 4KHDHub implementation synced from yoruix/nuvio-providers",
-      "version": "1.0.1",
+      "version": "1.0.2",
       "author": "ummarm",
       "supportedTypes": [
         "movie",
@@ -90,7 +90,7 @@
       "id": "hdhub4u_murph",
       "name": "HDHub4u Murph",
       "description": "Wrapper for HDHub4u results exposed by Murph's Streams",
-      "version": "1.0.1",
+      "version": "1.0.2",
       "author": "ummarm",
       "supportedTypes": [
         "movie",

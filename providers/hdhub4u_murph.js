@@ -143,6 +143,24 @@ function probeStream(stream) {
   });
 }
 
+function looksLikeDirectMediaUrl(url) {
+  var normalized = String(url || "").toLowerCase();
+  if (!/^https?:\/\//i.test(normalized)) return false;
+  if (/\/login\.php\b/.test(normalized) || /action=logout/.test(normalized)) return false;
+  return /\.m(?:kv|p4)(?:$|[?#])/.test(normalized)
+    || /\.m3u8(?:$|[?#])/.test(normalized)
+    || /\.ts(?:$|[?#])/.test(normalized);
+}
+
+function looksLikeMurphFallbackCandidate(stream) {
+  if (!stream || !stream.url) return false;
+  if (!looksLikeDirectMediaUrl(stream.url)) return false;
+  var size = Number(stream.videoSize || (stream.behaviorHints && stream.behaviorHints.videoSize) || 0);
+  if (size > 0) return true;
+  return /\[[^\]]+(gb|mb)\]/i.test(String(stream.title || ""))
+    || /hdhub4u/i.test(String(stream.name || ""));
+}
+
 function filterSeekableStreams(streams) {
   if (!Array.isArray(streams) || streams.length === 0) {
     return Promise.resolve([]);
@@ -153,6 +171,15 @@ function filterSeekableStreams(streams) {
       .catch(function() { return { stream: stream, ok: false }; });
   })).then(function(results) {
     var filtered = results.filter(function(item) { return item.ok; }).map(function(item) { return item.stream; });
+    if (filtered.length === 0) {
+      filtered = results
+        .map(function(item) { return item.stream; })
+        .filter(looksLikeMurphFallbackCandidate);
+      if (filtered.length > 0) {
+        console.log(PROVIDER_TAG + " Seekable filter fallback kept " + filtered.length + "/" + streams.length + " streams");
+        return filtered;
+      }
+    }
     console.log(PROVIDER_TAG + " Seekable filter kept " + filtered.length + "/" + streams.length + " streams");
     return filtered;
   });
@@ -250,6 +277,7 @@ function mapMurphStream(item) {
     quality: normalizeQuality(name + " " + title),
     size: extractSize(title),
     behaviorHints: item.behaviorHints,
+    videoSize: item.behaviorHints && item.behaviorHints.videoSize,
     headers: void 0
   };
 }
