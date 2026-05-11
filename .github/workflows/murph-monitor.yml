@@ -1,0 +1,96 @@
+name: Murph wrapper monitor
+
+on:
+  schedule:
+    - cron: "42 3 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: murph-monitor
+  cancel-in-progress: false
+
+jobs:
+  monitor:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Check Murph-backed wrappers
+        id: monitor
+        env:
+          ISSUE_BODY_PATH: .git/murph-monitor-issue.md
+          REPORT_PATH: .git/murph-monitor-report.json
+        run: node scripts/check_murph_wrappers.mjs
+
+      - name: Create or update Murph drift issue
+        if: steps.monitor.outputs.drift == 'true'
+        uses: actions/github-script@v7
+        env:
+          ISSUE_BODY_PATH: .git/murph-monitor-issue.md
+        with:
+          script: |
+            const fs = require("fs");
+            const title = "Murph wrapper monitor detected drift";
+            const body = fs.readFileSync(process.env.ISSUE_BODY_PATH, "utf8");
+            const { owner, repo } = context.repo;
+            const issues = await github.paginate(github.rest.issues.listForRepo, {
+              owner,
+              repo,
+              state: "open",
+              per_page: 100,
+            });
+            const existing = issues.find((issue) => issue.title === title && !issue.pull_request);
+            if (existing) {
+              await github.rest.issues.createComment({
+                owner,
+                repo,
+                issue_number: existing.number,
+                body,
+              });
+            } else {
+              await github.rest.issues.create({
+                owner,
+                repo,
+                title,
+                body,
+              });
+            }
+
+      - name: Close resolved Murph drift issue
+        if: steps.monitor.outputs.drift != 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const title = "Murph wrapper monitor detected drift";
+            const { owner, repo } = context.repo;
+            const issues = await github.paginate(github.rest.issues.listForRepo, {
+              owner,
+              repo,
+              state: "open",
+              per_page: 100,
+            });
+            const existing = issues.find((issue) => issue.title === title && !issue.pull_request);
+            if (!existing) return;
+            await github.rest.issues.createComment({
+              owner,
+              repo,
+              issue_number: existing.number,
+              body: `Daily Murph monitor recovered on ${new Date().toISOString()}.`,
+            });
+            await github.rest.issues.update({
+              owner,
+              repo,
+              issue_number: existing.number,
+              state: "closed",
+            });

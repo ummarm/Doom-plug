@@ -167,10 +167,32 @@ function fetchJson(url) {
 
 function absolutizeUrl(url) {
   if (!url) return "";
+  url = String(url);
   if (/^https?:\/\//i.test(url)) return url;
   if (url.startsWith("//")) return "https:" + url;
   if (url.startsWith("/")) return MURPH_BASE + url;
   return MURPH_BASE + "/" + url.replace(/^\.?\//, "");
+}
+
+function extractMurphStreams(payload) {
+  if (Array.isArray(payload)) return payload;
+  if (!payload || typeof payload !== "object") return [];
+  var candidates = [
+    payload.streams,
+    payload.data && payload.data.streams,
+    payload.result && payload.result.streams,
+    payload.data && payload.data.results,
+    payload.results,
+    payload.items
+  ];
+  for (var i = 0; i < candidates.length; i += 1) {
+    if (Array.isArray(candidates[i])) return candidates[i];
+  }
+  return [];
+}
+
+function isProviderMatch(name) {
+  return /hd\s*hub\s*4u/i.test(String(name || ""));
 }
 
 function resolveImdbId(id, mediaType) {
@@ -214,16 +236,19 @@ function dedupeStreams(streams) {
 }
 
 function mapMurphStream(item) {
-  if (!item || !item.url) return null;
-  var absoluteUrl = absolutizeUrl(item.url);
+  if (!item) return null;
   var name = String(item.name || "");
-  if (name.indexOf("HDHub4u") === -1) return null;
+  if (!isProviderMatch(name)) return null;
+  var url = item.url || item.streamUrl || item.stream_url || item.src || item.file || "";
+  if (!url) return null;
+  var absoluteUrl = absolutizeUrl(url);
+  var title = item.title || item.description || item.label || "HDHub4u stream";
   return {
-    name: name.replace(/^HDHub4u/i, PROVIDER_NAME),
-    title: item.title || "HDHub4u stream",
+    name: name.replace(/hd\s*hub\s*4u/i, PROVIDER_NAME),
+    title: title,
     url: absoluteUrl,
-    quality: normalizeQuality(name + " " + (item.title || "")),
-    size: extractSize(item.title),
+    quality: normalizeQuality(name + " " + title),
+    size: extractSize(title),
     behaviorHints: item.behaviorHints,
     headers: void 0
   };
@@ -236,7 +261,7 @@ function getStreams(id, type, season, episode) {
     var endpoint = buildEndpoint(imdbId, mediaType, season, episode);
     if (!endpoint) return [];
     return fetchJson(endpoint).then(function(payload) {
-      var streams = Array.isArray(payload && payload.streams) ? payload.streams : [];
+      var streams = extractMurphStreams(payload);
       var mapped = streams.map(mapMurphStream).filter(Boolean);
       return filterSeekableStreams(dedupeStreams(mapped));
     });
