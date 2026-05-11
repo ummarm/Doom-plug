@@ -1,12 +1,12 @@
 {
   "name": "Doom-plug",
-  "version": "1.0.12",
+  "version": "1.0.13",
   "scrapers": [
     {
       "id": "4khdhub",
       "name": "4KHDHub",
       "description": "4KHDHub direct links",
-      "version": "1.0.5",
+      "version": "1.0.6",
       "author": "ummarm",
       "supportedTypes": [
         "movie",
@@ -27,7 +27,7 @@
       "id": "4khdhubtv",
       "name": "4khdhub-tv",
       "description": "4KHDHub TV direct links",
-      "version": "1.0.5",
+      "version": "1.0.6",
       "author": "ummarm",
       "supportedTypes": [
         "movie",
@@ -45,10 +45,31 @@
       ]
     },
     {
+      "id": "4khdhub_yoruix",
+      "name": "4KHDHub Yoruix",
+      "description": "Alternate 4KHDHub implementation synced from yoruix/nuvio-providers",
+      "version": "1.0.1",
+      "author": "ummarm",
+      "supportedTypes": [
+        "movie",
+        "tv"
+      ],
+      "filename": "providers/4khdhub_yoruix.js",
+      "enabled": true,
+      "formats": [
+        "mp4",
+        "m3u8"
+      ],
+      "logo": "https://i.postimg.cc/DZpW6Xfb/4khdhub.png",
+      "contentLanguage": [
+        "en"
+      ]
+    },
+    {
       "id": "hdhub4u",
       "name": "HDHub4u",
       "description": "Direct links from HDHub4u with high-speed download support",
-      "version": "1.0.3",
+      "version": "1.0.4",
       "author": "ummarm",
       "supportedTypes": [
         "movie",

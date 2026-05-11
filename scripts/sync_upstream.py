@@ -26,8 +26,10 @@ PR_BODY_PATH = Path(
 )
 ANCHOR_DATE = date(2026, 4, 20)
 CADENCE_DAYS = 2
-UPSTREAM_RAW_BASE = "https://raw.githubusercontent.com/D3adlyRocket/All-in-One-Nuvio/main"
-UPSTREAM_TREE_API = "https://api.github.com/repos/D3adlyRocket/All-in-One-Nuvio/git/trees/main?recursive=1"
+D3ADLYROCKET_UPSTREAM_RAW_BASE = "https://raw.githubusercontent.com/D3adlyRocket/All-in-One-Nuvio/main"
+D3ADLYROCKET_UPSTREAM_TREE_API = "https://api.github.com/repos/D3adlyRocket/All-in-One-Nuvio/git/trees/main?recursive=1"
+YORUIX_UPSTREAM_RAW_BASE = "https://raw.githubusercontent.com/yoruix/nuvio-providers/main"
+YORUIX_UPSTREAM_TREE_API = "https://api.github.com/repos/yoruix/nuvio-providers/git/trees/main?recursive=1"
 DOOM_DOMAINS_URL = "https://raw.githubusercontent.com/ummarm/Doom-plug/main/domains.json"
 USER_AGENT = "Doom-plug upstream sync"
 SEEKABLE_VALIDATION_MARKER = "__DOOM_SEEKABLE_VALIDATION__"
@@ -214,6 +216,8 @@ class Provider:
     upstream_paths: tuple[str, ...]
     local_path_str: str
     discovery_terms: tuple[str, ...] = ()
+    upstream_raw_base: str = D3ADLYROCKET_UPSTREAM_RAW_BASE
+    upstream_tree_api: str = D3ADLYROCKET_UPSTREAM_TREE_API
 
     @property
     def local_path(self) -> Path:
@@ -235,7 +239,7 @@ class ResolvedProvider:
 
     @property
     def upstream_url(self) -> str:
-        return f"{UPSTREAM_RAW_BASE}/{self.upstream_path}"
+        return f"{self.provider.upstream_raw_base}/{self.upstream_path}"
 
 
 PROVIDERS = (
@@ -250,6 +254,14 @@ PROVIDERS = (
     Provider("hindmoviez", ("providers/hindmoviez.js",), "providers/hindmoviez.js", ("hindmoviez",)),
     Provider("movieblast", ("providers/movieblast.js",), "providers/movieblast.js", ("movieblast",)),
     Provider("moviebox", ("providers/moviebox.js",), "providers/moviebox.js", ("moviebox",)),
+    Provider(
+        "4khdhub_yoruix",
+        ("providers/4khdhub.js",),
+        "providers/4khdhub_yoruix.js",
+        ("4khdhub", "hubcloud", "yoruix"),
+        YORUIX_UPSTREAM_RAW_BASE,
+        YORUIX_UPSTREAM_TREE_API,
+    ),
     Provider("moviesdrive", ("src/providers/moviesdrive.js", "providers/moviesdrive.js"), "providers/moviesdrive.js", ("moviesdrive",)),
     Provider("streamflix", ("providers/streamflix.js",), "providers/streamflix.js", ("streamflix",)),
 )
@@ -289,8 +301,8 @@ def fetch_json(url: str) -> object:
         return json.load(response)
 
 
-def fetch_upstream_tree_paths() -> list[str]:
-    payload = fetch_json(UPSTREAM_TREE_API)
+def fetch_upstream_tree_paths(tree_api: str) -> list[str]:
+    payload = fetch_json(tree_api)
     tree = payload["tree"]
     return [item["path"] for item in tree if item.get("type") == "blob"]
 
@@ -420,75 +432,6 @@ def patch_hindmoviez_source(text: str) -> str:
     return text
 
 
-def patch_4khdhub_fsl_preferred(text: str) -> str:
-    if "const preferredLinks = fslLinks.length ? fslLinks : extractedLinks;" in text:
-        return text
-    if "const hindiStreams = streams.filter((stream) => /\\bHindi\\b/i.test(" in text:
-        return text
-    old_preferred_block = (
-        'const preferredStreams = streams.filter((stream) => !/(BuzzServer|Pixeldrain)/i.test(`${stream.name || ""} ${stream.title || ""}`));\n'
-        "    return preferredStreams.length ? preferredStreams : streams;"
-    )
-    new_preferred_block = (
-        'const primaryStreams = streams.filter((stream) => !/(BuzzServer|Pixeldrain)/i.test(`${stream.name || ""} ${stream.title || ""}`));\n'
-        '    const hindiStreams = streams.filter((stream) => /\\bHindi\\b/i.test(`${stream.name || ""} ${stream.title || ""}`));\n'
-        "    const preferredStreams = primaryStreams.slice();\n"
-        "    hindiStreams.forEach((stream) => {\n"
-        "      if (preferredStreams.indexOf(stream) === -1) preferredStreams.push(stream);\n"
-        "    });\n"
-        "    return preferredStreams.length ? preferredStreams : streams;"
-    )
-    if old_preferred_block in text:
-        return text.replace(old_preferred_block, new_preferred_block, 1)
-
-    updated, count = re.subn(
-        r"(\s*const extractedLinks = yield extractHubCloud\(sourceResult\.url, sourceResult\.meta\);\n)\s*return extractedLinks\.map\(",
-        r'\1          const fslLinks = extractedLinks.filter((link) => link.source === "FSL");\n          const preferredLinks = fslLinks.length ? fslLinks : extractedLinks;\n          return preferredLinks.map(',
-        text,
-        count=1,
-    )
-    if count == 1:
-        return updated
-
-    function_start = text.find("function resolveHubcloud(")
-    if function_start == -1:
-        raise RuntimeError("Could not find resolveHubcloud in 4KHDHub provider")
-
-    return_anchor = text.find("return streams;", function_start)
-    if return_anchor == -1:
-        raise RuntimeError("Could not find stream return point in 4KHDHub provider")
-
-    replacement = new_preferred_block
-    return text[:return_anchor] + replacement + text[return_anchor + len("return streams;") :]
-
-
-def patch_hdhub4u_fsl_preferred(text: str) -> str:
-    if 'const fslLinks = filteredLinks.filter((link) => /fsl/i.test(link.source || ""));' in text:
-        return text
-
-    updated, count = re.subn(
-        r"(\s*if \(mediaType === \"tv\" && episode !== null\) \{\n\s*filteredLinks = finalLinks\.filter\(\(link\) => link\.episode === episode\);\n\s*})",
-        r'\1\n      const fslLinks = filteredLinks.filter((link) => /fsl/i.test(link.source || ""));\n      if (fslLinks.length) {\n        filteredLinks = fslLinks;\n      }',
-        text,
-        count=1,
-    )
-    if count == 1:
-        return updated
-
-    block_start = text.find("let filteredLinks = finalLinks;")
-    map_anchor = text.find("const streams = filteredLinks.map(", block_start)
-    if block_start == -1 or map_anchor == -1:
-        raise RuntimeError("Could not add FSL-first fallback logic to HDHub4u provider")
-
-    insertion = (
-        '      const fslLinks = filteredLinks.filter((link) => /fsl/i.test(link.source || ""));\n'
-        "      if (fslLinks.length) {\n"
-        "        filteredLinks = fslLinks;\n"
-        "      }\n"
-    )
-    return text[:map_anchor] + insertion + text[map_anchor:]
-
-
 def patch_seekable_validation(text: str) -> str:
     if SEEKABLE_VALIDATION_MARKER in text:
         return text
@@ -496,15 +439,11 @@ def patch_seekable_validation(text: str) -> str:
 
 
 def transform_source(provider: Provider, text: str) -> str:
-    if provider.scraper_id in {"4khdhub", "4khdhubtv", "hdhub4u"}:
+    if provider.scraper_id in {"4khdhub", "4khdhubtv", "hdhub4u", "4khdhub_yoruix"}:
         text = patch_domain_source(text)
     elif provider.scraper_id == "moviesdrive":
         text = patch_moviesdrive_domain_source(text)
-    if provider.scraper_id in {"4khdhub", "4khdhubtv"}:
-        text = patch_4khdhub_fsl_preferred(text)
-    elif provider.scraper_id == "hdhub4u":
-        text = patch_hdhub4u_fsl_preferred(text)
-    elif provider.scraper_id == "hindmoviez":
+    if provider.scraper_id == "hindmoviez":
         text = patch_hindmoviez_source(text)
     text = patch_seekable_validation(text)
     return text.rstrip("\n") + "\n"
@@ -564,9 +503,9 @@ def write_pr_body(
             "",
             "## Doom-plug local patches preserved",
             "",
-            "- `4KHDHub`, `4khdhub-tv`, `HDHub4u`, and `MoviesDrive` still point at Doom-plug's own `domains.json`.",
+            "- `4KHDHub`, `4khdhub-tv`, `4KHDHub Yoruix`, `HDHub4u`, and `MoviesDrive` still point at Doom-plug's own `domains.json`.",
             "- `HindMoviez` still uses direct resolved URLs instead of the upstream worker proxy.",
-            "- `4KHDHub` and `4khdhub-tv` keep Doom-plug's preferred-host fallback behavior, but still keep working Hindi-labeled links when available; `HDHub4u` keeps FSL-first fallback behavior.",
+            "- `4KHDHub`, `4khdhub-tv`, `4KHDHub Yoruix`, and `HDHub4u` now return any upstream links that remain working and seekable after Doom-plug validation, without extra FSL-only or host-preference filtering.",
             "- All tracked providers keep Doom-plug's working-and-seekable stream validation wrapper before results are returned.",
             "",
             "## Version bumps",
@@ -583,7 +522,8 @@ def write_pr_body(
             "## Run info",
             "",
             f"- Checked on `{run_date.isoformat()}` UTC",
-            f"- Upstream repo: `{UPSTREAM_RAW_BASE}`",
+            f"- Primary upstream repo: `{D3ADLYROCKET_UPSTREAM_RAW_BASE}`",
+            f"- Secondary upstream repo: `{YORUIX_UPSTREAM_RAW_BASE}`",
         ]
     )
 
@@ -618,21 +558,29 @@ def main() -> int:
 
     changed_providers: list[ResolvedProvider] = []
     sync_warnings: list[str] = []
-    try:
-        upstream_tree_paths = fetch_upstream_tree_paths()
-    except Exception as exc:
-        upstream_tree_paths = []
-        warning = f"Upstream tree discovery failed, so Doom-plug fell back to static paths: {exc}"
-        sync_warnings.append(warning)
-        print(f"Warning: {warning}")
+    upstream_tree_cache: dict[str, list[str]] = {}
 
     for provider in PROVIDERS:
+        try:
+            upstream_tree_paths = upstream_tree_cache.get(provider.upstream_tree_api)
+            if upstream_tree_paths is None:
+                upstream_tree_paths = fetch_upstream_tree_paths(provider.upstream_tree_api)
+                upstream_tree_cache[provider.upstream_tree_api] = upstream_tree_paths
+        except Exception as exc:
+            upstream_tree_paths = []
+            warning = (
+                f"Upstream tree discovery failed for `{provider.scraper_id}`, so Doom-plug "
+                f"fell back to static paths: {exc}"
+            )
+            sync_warnings.append(warning)
+            print(f"Warning: {warning}")
+
         resolved_provider = None
         upstream_text = None
 
         for upstream_path in candidate_upstream_paths(provider, upstream_tree_paths):
             try:
-                upstream_text = fetch_text(f"{UPSTREAM_RAW_BASE}/{upstream_path}")
+                upstream_text = fetch_text(f"{provider.upstream_raw_base}/{upstream_path}")
                 resolved_provider = ResolvedProvider(provider, upstream_path)
                 if upstream_path != provider.upstream_paths[0]:
                     print(

@@ -76,7 +76,7 @@ var import_cheerio_without_node_native2 = __toESM(require("cheerio-without-node-
 // src/4KHDHub/http.js
 var DOMAINS_URL = "https://raw.githubusercontent.com/ummarm/Doom-plug/main/domains.json";
 var TMDB_API_KEY = "439c478a771f35c05022f9feabcca01c";
-var DEFAULT_MAIN_URL = "https://4khdhub.dad";
+var DEFAULT_MAIN_URL = "https://4khdhub.link";
 
 // AMENDED: Modernized User-Agent and headers to prevent mobile blocking
 var HEADERS = {
@@ -455,13 +455,7 @@ function resolveHubcloud(url, sourceTitle, referer, quality) {
 
       streams.push(buildStream(subSource, finalUrl, foundQuality, { Referer: entryUrl }, size, tech));
     });
-    const primaryStreams = streams.filter((stream) => !/(BuzzServer|Pixeldrain)/i.test(`${stream.name || ""} ${stream.title || ""}`));
-    const hindiStreams = streams.filter((stream) => /\bHindi\b/i.test(`${stream.name || ""} ${stream.title || ""}`));
-    const preferredStreams = primaryStreams.slice();
-    hindiStreams.forEach((stream) => {
-      if (preferredStreams.indexOf(stream) === -1) preferredStreams.push(stream);
-    });
-    return preferredStreams.length ? preferredStreams : streams;
+    return streams;
   });
 }
 

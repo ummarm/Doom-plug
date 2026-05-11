@@ -47,6 +47,7 @@ jobs:
             manifest.json
             providers/4khdhub.js
             providers/4khdhub_tv.js
+            providers/4khdhub_yoruix.js
             providers/hdhub4u.js
             providers/hindmoviez.js
             providers/movieblast.js
