@@ -1,6 +1,6 @@
 {
   "name": "Doom-plug",
-  "version": "1.0.13",
+  "version": "1.0.14",
   "scrapers": [
     {
       "id": "4khdhub",
@@ -87,6 +87,29 @@
       ]
     },
     {
+      "id": "hdhub4u_murph",
+      "name": "HDHub4u Murph",
+      "description": "Wrapper for HDHub4u results exposed by Murph's Streams",
+      "version": "1.0.0",
+      "author": "ummarm",
+      "supportedTypes": [
+        "movie",
+        "tv"
+      ],
+      "filename": "providers/hdhub4u_murph.js",
+      "enabled": true,
+      "formats": [
+        "mp4",
+        "mkv",
+        "m3u8"
+      ],
+      "logo": "https://i.postimg.cc/mryRTf0R/hdhub4u.png",
+      "contentLanguage": [
+        "en",
+        "hi"
+      ]
+    },
+    {
       "id": "hindmoviez",
       "name": "HindMoviez",
       "description": "HindMoviez - Hindi and English Movies and Series",
@@ -132,6 +155,29 @@
         "hi",
         "ta",
         "te"
+      ]
+    },
+    {
+      "id": "4khdhub_murph",
+      "name": "4KHDHub Murph",
+      "description": "Wrapper for 4KHDHub results exposed by Murph's Streams",
+      "version": "1.0.0",
+      "author": "ummarm",
+      "supportedTypes": [
+        "movie",
+        "tv"
+      ],
+      "filename": "providers/4khdhub_murph.js",
+      "enabled": true,
+      "formats": [
+        "mp4",
+        "mkv",
+        "m3u8"
+      ],
+      "logo": "https://i.postimg.cc/DZpW6Xfb/4khdhub.png",
+      "contentLanguage": [
+        "en",
+        "hi"
       ]
     },
     {
