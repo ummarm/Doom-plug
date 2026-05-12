@@ -671,6 +671,10 @@ function __doomFilterSeekableStreams(streams, providerLabel) {
   })).then(function(results) {
     var filtered = results.filter(function(item) { return item.ok; }).map(function(item) { return item.stream; });
     var label = providerLabel || "[Doom-plug]";
+    if (filtered.length === 0) {
+      console.log(label + " Seekable filter kept 0/" + streams.length + " streams; returning original streams as fallback");
+      return streams;
+    }
     console.log(label + " Seekable filter kept " + filtered.length + "/" + streams.length + " streams");
     return filtered;
   });
@@ -700,6 +704,81 @@ function __doomFilterSeekableStreams(streams, providerLabel) {
 
   __doomWrappedGetStreams.__doomSeekableWrapped = true;
   getStreams = __doomWrappedGetStreams;
+
+  if (typeof module !== "undefined" && module.exports) {
+    module.exports.getStreams = getStreams;
+  } else if (typeof global !== "undefined") {
+    global.getStreams = getStreams;
+  }
+})();
+
+// __DOOM_STREAM_NORMALIZATION__
+function __doomNormalizeHeaders(headers) {
+  if (!headers || typeof headers !== "object") return null;
+  var normalized = {};
+  var key;
+  for (key in headers) {
+    if (headers[key] !== undefined && headers[key] !== null && headers[key] !== "") {
+      normalized[key] = String(headers[key]);
+    }
+  }
+  return Object.keys(normalized).length ? normalized : null;
+}
+
+function __doomLooksWebReady(url) {
+  var normalized = String(url || "").toLowerCase();
+  return normalized.indexOf("https://") === 0
+    && (normalized.indexOf(".mp4") !== -1 || normalized.indexOf("format=mp4") !== -1);
+}
+
+function __doomNormalizeStream(rawStream) {
+  if (!rawStream || typeof rawStream !== "object") return null;
+  var targetUrl = rawStream.url || rawStream.externalUrl;
+  if (!targetUrl || typeof targetUrl !== "string") return null;
+
+  var requestHeaders = __doomNormalizeHeaders(rawStream.headers);
+  var behaviorHints = {};
+  var key;
+  for (key in rawStream.behaviorHints || {}) behaviorHints[key] = rawStream.behaviorHints[key];
+
+  if (rawStream.fileName && !behaviorHints.filename) behaviorHints.filename = rawStream.fileName;
+  if (typeof rawStream.size === "number" && rawStream.size > 0 && !behaviorHints.videoSize) {
+    behaviorHints.videoSize = rawStream.size;
+  }
+  if (typeof rawStream.videoSize === "number" && rawStream.videoSize > 0 && !behaviorHints.videoSize) {
+    behaviorHints.videoSize = rawStream.videoSize;
+  }
+  if (!behaviorHints.bingeGroup) {
+    var providerId = typeof PLUGIN_TAG !== "undefined" ? PLUGIN_TAG : (typeof TAG !== "undefined" ? TAG : "doom-plug");
+    behaviorHints.bingeGroup = String(providerId).replace(/[^a-z0-9]+/gi, "-").toLowerCase();
+  }
+  if (!__doomLooksWebReady(targetUrl) || requestHeaders) behaviorHints.notWebReady = true;
+  if (requestHeaders) behaviorHints.proxyHeaders = { request: requestHeaders };
+
+  var description = rawStream.description || rawStream.title || rawStream.name || "Doom-plug stream";
+  return {
+    name: rawStream.name || "Doom-plug",
+    title: description,
+    description: description,
+    url: targetUrl,
+    behaviorHints: behaviorHints
+  };
+}
+
+(function() {
+  if (typeof getStreams !== "function" || getStreams.__doomNormalizedWrapped) return;
+
+  var __doomOriginalGetStreamsForNormalization = getStreams;
+  var __doomNormalizedGetStreams = function() {
+    return Promise.resolve(__doomOriginalGetStreamsForNormalization.apply(this, arguments))
+      .then(function(streams) {
+        if (!Array.isArray(streams)) return [];
+        return streams.map(__doomNormalizeStream).filter(Boolean);
+      });
+  };
+
+  __doomNormalizedGetStreams.__doomNormalizedWrapped = true;
+  getStreams = __doomNormalizedGetStreams;
 
   if (typeof module !== "undefined" && module.exports) {
     module.exports.getStreams = getStreams;
