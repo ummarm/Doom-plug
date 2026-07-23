@@ -1,6 +1,6 @@
 {
   "name": "Doom-plug",
-  "version": "1.0.19",
+  "version": "1.0.20",
   "scrapers": [
     {
       "id": "4khdhub",
@@ -48,7 +48,7 @@
       "id": "4khdhub_yoruix",
       "name": "4KHDHub Yoruix",
       "description": "Alternate 4KHDHub implementation synced from yoruix/nuvio-providers",
-      "version": "1.0.2",
+      "version": "1.0.3",
       "author": "ummarm",
       "supportedTypes": [
         "movie",
@@ -136,7 +136,7 @@
       "id": "movieblast",
       "name": "MovieBlast",
       "description": "MovieBlast - Hindi, Tamil, Telugu and English Movies/Series with multi-quality streams",
-      "version": "1.0.1",
+      "version": "1.0.2",
       "author": "ummarm",
       "supportedTypes": [
         "movie",
@@ -184,7 +184,7 @@
       "id": "moviebox",
       "name": "MovieBox",
       "description": "MovieBox - Worker-backed direct streams for movies and TV",
-      "version": "1.0.2",
+      "version": "1.0.3",
       "author": "ummarm",
       "supportedTypes": [
         "movie",
